@@ -1,0 +1,30 @@
+version: '3'
+
+services:
+  jenkins-master:
+    image: jenkins/jenkins:lts
+    container_name: jenkins-master
+    environment:
+      - JENKINS_ADMIN_USER=admin
+      - JENKINS_ADMIN_PASSWORD=admin
+    ports:
+      - "9042:8080"  # Expose the master Jenkins UI on port 8080
+      - "50000:50000"  # Expose the JNLP agent connection port
+    volumes:
+      - jenkins_home:/var/jenkins_home  # Persist Jenkins data
+
+  jenkins-slave:
+    image: jenkins/inbound-agent  # Updated image for Jenkins slave
+    container_name: jenkins-slave
+    environment:
+      - JENKINS_URL=http://jenkins-master:8080  # URL of the master Jenkins server
+      - JENKINS_AGENT_NAME=slave-1  # Name of the slave agent
+      # Secret key for connecting the slave
+    entrypoint: ["java", "-jar", "/usr/share/jenkins/agent.jar", "-url", "http://jenkins-master:8080", "-name", "slave-1", "-secret", "b2368bb6b073be32cdbd4b6c693f1a8ac2bf8163cf11a23a5251ecddd2df461e", "-workDir", "/home/jenkins/agent"]
+    depends_on:
+      - jenkins-master  # Ensure that the master container is up before starting the slave
+
+volumes:
+  jenkins_home:
+    driver: local
+
